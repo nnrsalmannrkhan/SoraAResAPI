@@ -11,7 +11,7 @@ import morgan from 'morgan';
 import crypto from 'crypto';
 import { helmetConfig, corsConfig, rateLimiter } from './src/middleware/security.js';
 import { errorHandler, notFound } from './src/middleware/errorHandler.js';
-import { initializeDatabase } from './src/config/database.js';
+import { initializeDatabase, closePool } from './src/config/database.js';
 import authRoutes from './src/routes/authRoutes.js';
 import projectRoutes from './src/routes/projectRoutes.js';
 
@@ -101,7 +101,9 @@ let app;
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (err, promise) => {
       console.error('❌ Unhandled Rejection:', err.message);
-      server.close(() => {
+      console.error('Stack:', err.stack);
+      server.close(async () => {
+        await closePool();
         process.exit(1);
       });
     });
@@ -109,10 +111,36 @@ let app;
     // Handle uncaught exceptions
     process.on('uncaughtException', (err) => {
       console.error('❌ Uncaught Exception:', err.message);
-      process.exit(1);
+      console.error('Stack:', err.stack);
+      server.close(async () => {
+        await closePool();
+        process.exit(1);
+      });
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('⚠️ SIGTERM signal received: closing HTTP server');
+      server.close(async () => {
+        await closePool();
+        console.log('✅ HTTP server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', async () => {
+      console.log('⚠️ SIGINT signal received: closing HTTP server');
+      server.close(async () => {
+        await closePool();
+        console.log('✅ HTTP server closed');
+        process.exit(0);
+      });
     });
   } catch (error) {
-    console.error('❌ Failed to initialize application:', error.message);
+    console.error('❌ Failed to initialize application');
+    console.error('Error message:', error.message);
+    console.error('Stack:', error.stack);
+    await closePool();
     process.exit(1);
   }
 })();
