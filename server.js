@@ -30,83 +30,91 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === JWT_SECRET_DEFAULT) {
   process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
 }
 
-// Initialize database
-initializeDatabase();
+// Initialize database and start server
+let app;
+(async () => {
+  try {
+    await initializeDatabase();
 
-// Create Express application
-const app = express();
+    // Create Express application
+    app = express();
 
-// ES module __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+    // ES module __dirname equivalent
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
 
-// Middleware
-app.use(helmetConfig);
-app.use(corsConfig);
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
-app.use(rateLimiter);
+    // Middleware
+    app.use(helmetConfig);
+    app.use(corsConfig);
+    app.use(express.json({ limit: '10kb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+    app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+    app.use(rateLimiter);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+    // Health check endpoint
+    app.get('/health', (req, res) => {
+      res.status(200).json({
+        success: true,
+        message: 'Server is running',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+      });
+    });
 
-// API Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/projects', projectRoutes);
+    // API Routes
+    app.use('/api/v1/auth', authRoutes);
+    app.use('/api/v1/projects', projectRoutes);
 
-// Serve static files from public directory
-// setHeaders ensures correct MIME types for CSS (text/css) and other assets
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filePath) => {
-    const ext = path.extname(filePath).toLowerCase();
-    if (ext === '.css') {
-      res.setHeader('Content-Type', 'text/css');
-    } else if (ext === '.js') {
-      res.setHeader('Content-Type', 'application/javascript');
-    }
-    },
-  maxAge: 0,
-}));
+    // Serve static files from public directory
+    // setHeaders ensures correct MIME types for CSS (text/css) and other assets
+    app.use(express.static(path.join(__dirname, 'public'), {
+      setHeaders: (res, filePath) => {
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.css') {
+          res.setHeader('Content-Type', 'text/css');
+        } else if (ext === '.js') {
+          res.setHeader('Content-Type', 'application/javascript');
+        }
+        },
+      maxAge: 0,
+    }));
 
-// SPA fallback - serve index.html for all non-API GET requests
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+    // SPA fallback - serve index.html for all non-API GET requests
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    });
 
-// 404 handler for unmatched routes
-app.use(notFound);
+    // 404 handler for unmatched routes
+    app.use(notFound);
 
-// Global error handling middleware
-app.use(errorHandler);
+    // Global error handling middleware
+    app.use(errorHandler);
 
-// Start server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`✅ Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  console.log(`🚀 API Documentation: http://localhost:${PORT}/api/v1`);
-  console.log(`💚 Health Check: http://localhost:${PORT}/health`);
-});
+    // Start server
+    const PORT = process.env.PORT || 5000;
+    const server = app.listen(PORT, () => {
+      console.log(`✅ Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+      console.log(`🚀 API Documentation: http://localhost:${PORT}/api/v1`);
+      console.log(`💚 Health Check: http://localhost:${PORT}/health`);
+    });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.error('❌ Unhandled Rejection:', err.message);
-  server.close(() => {
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (err, promise) => {
+      console.error('❌ Unhandled Rejection:', err.message);
+      server.close(() => {
+        process.exit(1);
+      });
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (err) => {
+      console.error('❌ Uncaught Exception:', err.message);
+      process.exit(1);
+    });
+  } catch (error) {
+    console.error('❌ Failed to initialize application:', error.message);
     process.exit(1);
-  });
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err.message);
-  process.exit(1);
-});
+  }
+})();
 
 export default app;

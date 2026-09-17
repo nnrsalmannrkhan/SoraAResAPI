@@ -60,7 +60,7 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check if user exists
-    const user = findUserByEmail(email);
+    const user = await findUserByEmail(email);
 
     if (!user) {
       return next(new ApiError('Invalid credentials', 401));
@@ -99,9 +99,9 @@ export const login = async (req, res, next) => {
  * @route   GET /api/v1/auth/me
  * @access  Private
  */
-export const getMe = (req, res, next) => {
+export const getMe = async (req, res, next) => {
   try {
-    const user = findUserById(req.user.id);
+    const user = await findUserById(req.user.id);
 
     if (!user) {
       return next(new ApiError('User not found', 404));
@@ -135,7 +135,7 @@ export const updateProfile = async (req, res, next) => {
       updateData.password = await hashPassword(password);
     }
 
-    const updatedUser = updateUser(req.user.id, updateData);
+    const updatedUser = await updateUser(req.user.id, updateData);
 
     if (!updatedUser) {
       return next(new ApiError('User not found', 404));
@@ -158,9 +158,9 @@ export const updateProfile = async (req, res, next) => {
  * @route   DELETE /api/v1/auth/me
  * @access  Private
  */
-export const deleteAccount = (req, res, next) => {
+export const deleteAccount = async (req, res, next) => {
   try {
-    const isDeleted = deleteUser(req.user.id);
+    const isDeleted = await deleteUser(req.user.id);
 
     if (!isDeleted) {
       return next(new ApiError('User not found', 404));
@@ -180,10 +180,10 @@ export const deleteAccount = (req, res, next) => {
  * @route   GET /api/v1/auth/users
  * @access  Private/Admin
  */
-export const getAllUsersController = (req, res, next) => {
+export const getAllUsersController = async (req, res, next) => {
   try {
     const { page = 1, limit = 100 } = req.query;
-    const users = getAllUsers({
+    const users = await getAllUsers({
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
     });
