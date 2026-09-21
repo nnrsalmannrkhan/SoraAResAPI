@@ -42,11 +42,24 @@ const handleJWTExpiredError = (error) => {
  * @returns {ApiError} - Formatted API error
  */
 const handleDuplicateFieldsError = (error) => {
-  // better-sqlite3 constraint error message format:
+  // PostgreSQL constraint error message format:
+  // "duplicate key value violates unique constraint "users_email_key""
+  // SQLite constraint error message format:
   // "UNIQUE constraint failed: users.username"
-  // Extract the field name from the error message
-  const match = error.message.match(/UNIQUE constraint failed: \w+\.(\w+)/);
-  const field = match ? match[1] : 'field';
+  let field = 'field';
+
+  // Try PostgreSQL format first
+  let match = error.message.match(/constraint "users_(\w+)_key"/);
+  if (match) {
+    field = match[1];
+  } else {
+    // Try SQLite format as fallback
+    match = error.message.match(/UNIQUE constraint failed: \w+\.(\w+)/);
+    if (match) {
+      field = match[1];
+    }
+  }
+
   const message = `Duplicate field value: ${field}. Please use another value.`;
   return new ApiError(message, 409);
 };
@@ -129,6 +142,7 @@ export const errorHandler = (err, req, res, next) => {
         // Handle specific error types
     if (error.name === 'JsonWebTokenError') error = handleJWTError(error);
     if (error.name === 'TokenExpiredError') error = handleJWTExpiredError(error);
+    if (error.code === '23505') error = handleDuplicateFieldsError(error);
     if (error.code === 'SQLITE_CONSTRAINT') error = handleDuplicateFieldsError(error);
     if (error.code === 'SQLITE_READONLY' || error.code === 'SQLITE_CANTOPEN') error = handleReadOnlyDbError(error);
     if (error.name === 'ValidationError') error = handleValidationError(error);

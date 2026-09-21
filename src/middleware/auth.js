@@ -55,7 +55,8 @@ export const protect = async (req, res, next) => {
 
     // Check if user still exists
     const db = getDb();
-    const user = db.prepare('SELECT id, username, email, role FROM users WHERE id = ?').get(decoded.id);
+    const result = await db.query('SELECT id, username, email, role FROM users WHERE id = $1', [decoded.id]);
+    const user = result.rows[0] || null;
 
     if (!user) {
       return next(new ApiError('The user belonging to this token no longer exists.', 401));

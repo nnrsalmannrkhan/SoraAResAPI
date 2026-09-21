@@ -48,6 +48,7 @@ export const registerSchema = Joi.object({
     }),
   email: Joi.string()
     .email()
+    .lowercase()
     .required()
     .messages({
       'string.empty': 'Email is required',
@@ -74,6 +75,7 @@ export const registerSchema = Joi.object({
 export const loginSchema = Joi.object({
   email: Joi.string()
     .email()
+    .lowercase()
     .required()
     .messages({
       'string.empty': 'Email is required',
