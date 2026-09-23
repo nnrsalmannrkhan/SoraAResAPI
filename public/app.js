@@ -219,10 +219,16 @@ function setActiveSection(section) {
         }
     });
 
+    // --- FIX: Ensure proper functions are called after section render ---
     if (section === 'projects') loadProjects();
     if (section === 'dashboard') loadDashboard();
     if (section === 'team') loadTeam();
-    if (section === 'profile') loadProfile();
+    if (section === 'profile') {
+        // Delay slightly to ensure DOM elements are fully injected
+        setTimeout(() => {
+            loadProfile();
+        }, 50);
+    }
 }
 
 // Get section content
