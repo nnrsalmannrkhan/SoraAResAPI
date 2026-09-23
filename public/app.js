@@ -1,5 +1,5 @@
 /**
- * Main Application Controller
+ * Main Application Controller - Agency & Micro-SaaS Edition
  * Handles authentication, API communication, and dynamic UI rendering
  */
 
@@ -122,14 +122,15 @@ async function checkAuth() {
         dashboard.classList.add('hidden');
         showLogin();
         loading.classList.add('hidden');
-        }
+    }
 }
 
 // Update user avatar initials
 function updateUserAvatar() {
     if (currentUser) {
         const initials = (currentUser.username || 'U').substring(0, 2).toUpperCase();
-        document.getElementById('user-initials').textContent = initials;
+        const avatarEl = document.getElementById('user-initials');
+        if (avatarEl) avatarEl.textContent = initials;
     }
 }
 
@@ -179,24 +180,25 @@ function logout() {
     currentUser = null;
     localStorage.removeItem('authToken');
     document.getElementById('dashboard-app').classList.add('hidden');
-        showLogin();
+    showLogin();
 }
 
 // Navigation
 function setActiveSection(section) {
     currentSection = section;
     const pageTitle = {
-        'dashboard': 'Dashboard',
-        'projects': 'Projects',
-        'team': 'Team Control',
+        'dashboard': 'Agency Dashboard',
+        'projects': 'Client Projects',
+        'team': 'Team Management',
         'services': 'Services & Pricing',
-        'profile': 'Profile'
-    }[section] || 'Dashboard';
+        'profile': 'Account Profile'
+    }[section] || 'Agency Dashboard';
     
-    document.getElementById('page-title').textContent = pageTitle;
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.textContent = pageTitle;
 
     const content = document.getElementById('main-content');
-    content.innerHTML = getSectionContent(section);
+    if (content) content.innerHTML = getSectionContent(section);
     
     // Update nav links
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -207,13 +209,16 @@ function setActiveSection(section) {
     // Find and highlight the clicked link
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => {
-        if (link.textContent.trim().toLowerCase().includes(section) || 
-            (section === 'dashboard' && link.textContent.trim() === 'Dashboard') ||
-            (section === 'profile' && link.textContent.trim() === 'Profile')) {
+        const text = link.textContent.trim().toLowerCase();
+        if (text.includes(section) || 
+            (section === 'dashboard' && text.includes('dashboard')) ||
+            (section === 'profile' && text.includes('profile')) ||
+            (section === 'services' && text.includes('services'))) {
             link.classList.add('active', 'bg-gray-800');
             link.classList.remove('text-gray-300');
         }
     });
+
     if (section === 'projects') loadProjects();
     if (section === 'dashboard') loadDashboard();
     if (section === 'team') loadTeam();
@@ -237,30 +242,33 @@ async function loadDashboard() {
     try {
         const stats = await api.getStats();
         const statsData = stats.data.stats;
-        document.getElementById('stats-content').innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-blue-600">${statsData.total || 0}</div>
-                    <div class="text-sm text-gray-500">Total Projects</div>
+        const statsContent = document.getElementById('stats-content');
+        if (statsContent) {
+            statsContent.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                        <div class="text-3xl font-extrabold text-blue-600">${statsData.total || 0}</div>
+                        <div class="text-sm font-medium text-gray-500 mt-1">Total Projects</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                        <div class="text-3xl font-extrabold text-amber-600">${statsData.pending || 0}</div>
+                        <div class="text-sm font-medium text-gray-500 mt-1">Pending</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                        <div class="text-3xl font-extrabold text-indigo-600">${statsData.in_progress || 0}</div>
+                        <div class="text-sm font-medium text-gray-500 mt-1">In Progress</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                        <div class="text-3xl font-extrabold text-emerald-600">${statsData.completed || 0}</div>
+                        <div class="text-sm font-medium text-gray-500 mt-1">Completed</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                        <div class="text-3xl font-extrabold text-rose-600">${statsData.cancelled || 0}</div>
+                        <div class="text-sm font-medium text-gray-500 mt-1">Cancelled</div>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-yellow-600">${statsData.pending || 0}</div>
-                    <div class="text-sm text-gray-500">Pending</div>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-blue-600">${statsData.in_progress || 0}</div>
-                    <div class="text-sm text-gray-500">In Progress</div>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-green-600">${statsData.completed || 0}</div>
-                    <div class="text-sm text-gray-500">Completed</div>
-                </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-red-600">${statsData.cancelled || 0}</div>
-                    <div class="text-sm text-gray-500">Cancelled</div>
-                </div>
-            </div>
-        `;
+            `;
+        }
     } catch (error) {
         console.error('Failed to load dashboard stats:', error);
     }
@@ -269,12 +277,17 @@ async function loadDashboard() {
 function getDashboardHTML() {
     return `
         <div class="space-y-6">
-            <h2 class="text-xl font-semibold text-gray-800">Project Statistics</h2>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Agency Overview</h2>
+                    <p class="text-sm text-gray-500 mt-1">Monitor your business performance and active client projects.</p>
+                </div>
+            </div>
             <div id="stats-content">
                 <div class="animate-pulse">
                     <div class="h-4 bg-gray-200 rounded w-full mb-4"></div>
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        ${Array(5).fill().map(() => '<div class="h-20 bg-gray-200 rounded"></div>').join('')}
+                        ${Array(5).fill().map(() => '<div class="h-24 bg-gray-200 rounded-xl"></div>').join('')}
                     </div>
                 </div>
             </div>
@@ -286,13 +299,18 @@ function getProjectsHTML() {
     return `
         <div class="space-y-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-gray-800">Projects</h2>
-                <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Client Projects</h2>
+                    <p class="text-sm text-gray-500 mt-1">Manage and track all ongoing and completed deliverables.</p>
+                </div>
+                <button onclick="openProjectModal()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition flex items-center shadow-sm">
                     <i class="fas fa-plus mr-2"></i>New Project
                 </button>
             </div>
-            <div id="projects-table" class="bg-white rounded-lg shadow overflow-hidden">
-                        </div>
+            <div id="projects-table" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-8 text-center text-gray-400">Loading projects...</div>
+            </div>
+        </div>
     `;
 }
 
@@ -311,37 +329,37 @@ function renderProjectsTable() {
     if (!container) return;
     
     if (projects.length === 0) {
-        container.innerHTML = '<div class="p-8 text-center text-gray-500">No projects yet. Create one!</div>';
+        container.innerHTML = '<div class="p-12 text-center text-gray-500 font-medium">No client projects found. Click "New Project" to create one!</div>';
         return;
     }
 
     container.innerHTML = `
-        <table class="w-full">
-            <thead class="bg-gray-50">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-50/75 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <tr>
-                    <th class="text-left p-4 font-medium text-gray-700">Title</th>
-                    <th class="text-left p-4 font-medium text-gray-700">Status</th>
-                    <th class="text-left p-4 font-medium text-gray-700">Priority</th>
-                    <th class="text-left p-4 font-medium text-gray-700">Created</th>
-                    <th class="text-right p-4 font-medium text-gray-700">Actions</th>
+                    <th class="p-4">Title</th>
+                    <th class="p-4">Status</th>
+                    <th class="p-4">Priority</th>
+                    <th class="p-4">Created Date</th>
+                    <th class="p-4 text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-gray-100 text-sm">
                 ${projects.map(project => `
-                    <tr class="border-t">
-                        <td class="p-4">${project.title}</td>
+                    <tr class="hover:bg-gray-50/50 transition">
+                        <td class="p-4 font-semibold text-gray-800">${project.title}</td>
                         <td class="p-4">
-                            <span class="px-2 py-1 text-xs rounded-full ${getStatusColor(project.status)}">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}">
                                 ${project.status}
                             </span>
                         </td>
-                        <td class="p-4 capitalize">${project.priority}</td>
-                        <td class="p-4 text-sm text-gray-500">${new Date(project.created_at).toLocaleDateString()}</td>
-                        <td class="p-4 text-right">
-                            <button onclick="editProject(${project.id})" class="text-blue-600 hover:text-blue-800 mr-2">
+                        <td class="p-4 capitalize text-gray-600">${project.priority}</td>
+                        <td class="p-4 text-gray-500">${new Date(project.created_at).toLocaleDateString()}</td>
+                        <td class="p-4 text-right space-x-2">
+                            <button onclick="editProject(${project.id})" class="text-blue-600 hover:text-blue-800 p-1 transition" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deleteProject(${project.id})" class="text-red-600 hover:text-red-800">
+                            <button onclick="deleteProject(${project.id})" class="text-rose-600 hover:text-rose-800 p-1 transition" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -354,21 +372,22 @@ function renderProjectsTable() {
 
 function getStatusColor(status) {
     const colors = {
-        'pending': 'bg-yellow-100 text-yellow-800',
-        'in-progress': 'bg-blue-100 text-blue-800',
-        'completed': 'bg-green-100 text-green-800',
-        'cancelled': 'bg-red-100 text-red-800'
+        'pending': 'bg-amber-50 text-amber-700 border border-amber-200/50',
+        'in-progress': 'bg-indigo-50 text-indigo-700 border border-indigo-200/50',
+        'completed': 'bg-emerald-50 text-emerald-700 border border-emerald-200/50',
+        'cancelled': 'bg-rose-50 text-rose-700 border border-rose-200/50'
     };
-        return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-gray-100 text-gray-800';
 }
 
 // Project modal functions
 function openProjectModal(project = null) {
-    const modal = document.getElementById('project-modal');
+    let modal = document.getElementById('project-modal');
     if (!modal) {
         createProjectModal();
+        modal = document.getElementById('project-modal');
     }
-    document.getElementById('project-modal').classList.remove('hidden');
+    modal.classList.remove('hidden');
     document.getElementById('project-modal-title').textContent = project ? 'Edit Project' : 'New Project';
     document.getElementById('project-title').value = project?.title || '';
     document.getElementById('project-description').value = project?.description || '';
@@ -380,42 +399,44 @@ function openProjectModal(project = null) {
 function createProjectModal() {
     const modal = document.createElement('div');
     modal.id = 'project-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-        <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-            <h3 id="project-modal-title" class="text-xl font-bold mb-4">New Project</h3>
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-100">
+            <h3 id="project-modal-title" class="text-xl font-bold text-gray-800 mb-5">New Project</h3>
             <input type="hidden" id="project-id">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                    <input type="text" id="project-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Project Title</label>
+                    <input type="text" id="project-title" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="project-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                    <textarea id="project-description" rows="3" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                    <select id="project-priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select id="project-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                        <option value="pending">Pending</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Priority</label>
+                        <select id="project-priority" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
+                        <select id="project-status" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button onclick="closeProjectModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                <button onclick="saveProject()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Save</button>
+            <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
+                <button onclick="closeProjectModal()" class="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition">Cancel</button>
+                <button onclick="saveProject()" class="px-5 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition shadow-sm">Save Project</button>
             </div>
         </div>
     `;
@@ -423,7 +444,8 @@ function createProjectModal() {
 }
 
 function closeProjectModal() {
-    document.getElementById('project-modal').classList.add('hidden');
+    const modal = document.getElementById('project-modal');
+    if (modal) modal.classList.add('hidden');
 }
 
 async function saveProject() {
@@ -459,7 +481,7 @@ async function deleteProject(id) {
     try {
         await api.deleteProject(id);
         loadProjects();
-                loadDashboard();
+        loadDashboard();
     } catch (error) {
         alert('Error deleting project: ' + error.message);
     }
@@ -473,47 +495,50 @@ function getTeamHTML() {
     return `
         <div class="space-y-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-gray-800">Team Control</h2>
-                <button onclick="openInviteModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Team Control</h2>
+                    <p class="text-sm text-gray-500 mt-1">Manage staff, roles, and agency member permissions.</p>
+                </div>
+                <button onclick="openInviteModal()" class="bg-purple-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-purple-700 transition flex items-center shadow-sm">
                     <i class="fas fa-user-plus mr-2"></i>Invite Member
                 </button>
             </div>
 
             <!-- Team Stats -->
             <div id="team-stats" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-purple-600" id="team-total">-</div>
-                    <div class="text-sm text-gray-500">Total Members</div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                    <div class="text-3xl font-extrabold text-purple-600" id="team-total">-</div>
+                    <div class="text-sm font-medium text-gray-500 mt-1">Total Members</div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-blue-600" id="team-admin">-</div>
-                    <div class="text-sm text-gray-500">Admins</div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                    <div class="text-3xl font-extrabold text-blue-600" id="team-admin">-</div>
+                    <div class="text-sm font-medium text-gray-500 mt-1">Admins</div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-green-600" id="team-active">-</div>
-                    <div class="text-sm text-gray-500">Active</div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                    <div class="text-3xl font-extrabold text-emerald-600" id="team-active">-</div>
+                    <div class="text-sm font-medium text-gray-500 mt-1">Active</div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow text-center">
-                    <div class="text-2xl font-bold text-yellow-600" id="team-pending">-</div>
-                    <div class="text-sm text-gray-500">Pending Invitations</div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 text-center">
+                    <div class="text-3xl font-extrabold text-amber-600" id="team-pending">-</div>
+                    <div class="text-sm font-medium text-gray-500 mt-1">Pending Invitations</div>
                 </div>
             </div>
 
             <!-- Team Tabs -->
             <div class="border-b border-gray-200">
                 <nav class="flex space-x-8">
-                    <button onclick="switchTeamTab('members')" id="tab-members" class="tab-button active border-b-2 border-purple-600 text-purple-600 py-2 px-1">
+                    <button onclick="switchTeamTab('members')" id="tab-members" class="tab-button active border-b-2 border-purple-600 text-purple-600 py-3 px-1 font-semibold text-sm">
                         <i class="fas fa-users mr-2"></i>Team Members
                     </button>
-                    <button onclick="switchTeamTab('agencies')" id="tab-agencies" class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-800 py-2 px-1">
+                    <button onclick="switchTeamTab('agencies')" id="tab-agencies" class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-800 py-3 px-1 font-semibold text-sm transition">
                         <i class="fas fa-building mr-2"></i>Agencies
                     </button>
                 </nav>
             </div>
 
             <!-- Tab Content -->
-            <div id="team-tab-content" class="text-center py-8 text-gray-500">
-                                <div class="animate-pulse">Loading team data...</div>
+            <div id="team-tab-content" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden text-center py-12 text-gray-500">
+                <div class="animate-pulse">Loading team data...</div>
             </div>
         </div>
     `;
@@ -532,10 +557,10 @@ async function loadTeam(tab) {
             var isForbidden = error.message.includes('403') ||
                 error.message.toLowerCase().includes('permission') ||
                 error.message.toLowerCase().includes('access');
-            container.innerHTML = '<div class="p-8 text-center text-gray-500">' +
+            container.innerHTML = '<div class="p-12 text-center text-gray-500">' +
                 (isForbidden
-                    ? '<i class="fas fa-lock text-2xl mb-3"></i><p class="font-medium">Admin access required to view team members.</p>'
-                    : '<i class="fas fa-exclamation-triangle text-2xl mb-3"></i><p>' + error.message + '</p>') +
+                    ? '<i class="fas fa-lock text-3xl mb-3 text-purple-500"></i><p class="font-semibold text-gray-700 text-lg">Admin Access Required</p><p class="text-sm text-gray-400 mt-1">You need administrator clearance to view agency team members.</p>'
+                    : '<i class="fas fa-exclamation-triangle text-3xl mb-3 text-amber-500"></i><p class="font-medium">' + error.message + '</p>') +
                 '</div>';
         }
     }
@@ -572,30 +597,30 @@ function renderTeamTab(tab) {
 
     if (tab === 'members') {
         if (teams.length === 0) {
-            container.innerHTML = '<div class="p-8 text-center text-gray-500">No team members found.</div>';
+            container.innerHTML = '<div class="p-12 text-center text-gray-500 font-medium">No team members found.</div>';
             return;
         }
         container.innerHTML = `
-            <table class="w-full">
-                <thead class="bg-gray-50">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50/75 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     <tr>
-                        <th class="text-left p-4 font-medium text-gray-700">Member</th>
-                        <th class="text-left p-4 font-medium text-gray-700">Email</th>
-                        <th class="text-left p-4 font-medium text-gray-700">Role</th>
-                        <th class="text-left p-4 font-medium text-gray-700">Joined</th>
+                        <th class="p-4">Member</th>
+                        <th class="p-4">Email</th>
+                        <th class="p-4">Role</th>
+                        <th class="p-4">Joined Date</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-100 text-sm">
                     ${teams.map(user => `
-                        <tr class="border-t">
-                            <td class="p-4 font-medium">${user.username}</td>
+                        <tr class="hover:bg-gray-50/50 transition">
+                            <td class="p-4 font-semibold text-gray-800">${user.username}</td>
                             <td class="p-4 text-gray-600">${user.email}</td>
                             <td class="p-4">
-                                <span class="px-2 py-1 text-xs rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+                                <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 border border-purple-200/50' : 'bg-blue-50 text-blue-700 border border-blue-200/50'}">
                                     ${user.role}
                                 </span>
                             </td>
-                            <td class="p-4 text-sm text-gray-500">${new Date(user.created_at).toLocaleDateString()}</td>
+                            <td class="p-4 text-gray-500">${new Date(user.created_at).toLocaleDateString()}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -603,19 +628,19 @@ function renderTeamTab(tab) {
         `;
     } else if (tab === 'agencies') {
         container.innerHTML = `
-            <div class="text-center py-12">
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-building text-2xl text-gray-400"></i>
+            <div class="text-center py-16 px-4">
+                <div class="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-purple-100">
+                    <i class="fas fa-building text-2xl text-purple-600"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Agency Management</h3>
-                <p class="text-gray-500">Agency and team management features are coming soon. Stay tuned!</p>
+                <h3 class="text-lg font-bold text-gray-800 mb-1">Agency Management</h3>
+                <p class="text-gray-500 text-sm max-w-sm mx-auto">Advanced multi-agency workspace management features are arriving soon.</p>
             </div>
         `;
     }
 }
 
 function openInviteModal() {
-    alert('Invite member feature is being developed. Stay tuned!');
+    alert('Invite member feature is under development.');
 }
 
 // ============================================================
@@ -626,64 +651,75 @@ function getServicesHTML() {
     return `
         <div class="space-y-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-gray-800">Services & Pricing</h2>
-                <button onclick="openNewServiceModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Services & Pricing Packages</h2>
+                    <p class="text-sm text-gray-500 mt-1">Choose the optimal plan to scale your digital agency operations.</p>
+                </div>
+                <button onclick="openNewServiceModal()" class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-emerald-700 transition flex items-center shadow-sm">
                     <i class="fas fa-plus mr-2"></i>Add Service
                 </button>
             </div>
 
             <!-- Pricing Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-6">
-                    <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-bolt text-2xl text-blue-600"></i>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-6 flex flex-col justify-between hover:border-blue-300 transition">
+                    <div>
+                        <div class="text-center mb-6">
+                            <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-100">
+                                <i class="fas fa-bolt text-xl text-blue-600"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">Starter Plan</h3>
+                            <p class="text-3xl font-extrabold text-blue-600 mt-2">$9<span class="text-sm font-normal text-gray-500">/mo</span></p>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800">Basic</h3>
-                        <p class="text-3xl font-bold text-blue-600 mt-3">$9<span class="text-sm text-gray-500">/mo</span></p>
+                        <ul class="space-y-3 mb-6 text-sm text-gray-600">
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Up to 10 active projects</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> 5GB cloud storage</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Basic agency analytics</li>
+                            <li class="flex items-center text-gray-300"><i class="fas fa-times mr-2.5"></i> Priority client support</li>
+                        </ul>
                     </div>
-                    <ul class="space-y-3 mb-6 text-sm">
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Up to 10 projects</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> 5GB storage</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Basic analytics</li>
-                        <li class="flex items-center text-gray-400"><i class="fas fa-times mr-2"></i> Priority support</li>
-                    </ul>
-                    <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">Get Started</button>
+                    <button class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-medium hover:bg-blue-700 transition shadow-sm">Get Started</button>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg border-2 border-purple-600 p-6 transform scale-105">
-                    <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-crown text-2xl text-purple-600"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800">Pro</h3>
-                        <p class="text-3xl font-bold text-purple-600 mt-3">$29<span class="text-sm text-gray-500">/mo</span></p>
-                        <span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Most Popular</span>
+                <div class="bg-white rounded-2xl shadow-xl border-2 border-purple-600 p-6 flex flex-col justify-between relative transform md:-translate-y-2">
+                    <div class="absolute -top-3.5 left-1/2 transform -translate-x-1/2">
+                        <span class="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Most Popular</span>
                     </div>
-                    <ul class="space-y-3 mb-6 text-sm">
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Unlimited projects</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> 50GB storage</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Advanced analytics</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Priority support</li>
-                    </ul>
-                    <button class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">Get Started</button>
+                    <div>
+                        <div class="text-center mb-6 pt-2">
+                            <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-purple-100">
+                                <i class="fas fa-crown text-xl text-purple-600"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">Professional Agency</h3>
+                            <p class="text-3xl font-extrabold text-purple-600 mt-2">$29<span class="text-sm font-normal text-gray-500">/mo</span></p>
+                        </div>
+                        <ul class="space-y-3 mb-6 text-sm text-gray-600">
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Unlimited client projects</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> 50GB fast storage</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Advanced agency metrics</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Priority 24/7 support</li>
+                        </ul>
+                    </div>
+                    <button class="w-full bg-purple-600 text-white py-2.5 rounded-xl font-medium hover:bg-purple-700 transition shadow-sm">Get Started</button>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-6">
-                    <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-building text-2xl text-green-600"></i>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-6 flex flex-col justify-between hover:border-emerald-300 transition">
+                    <div>
+                        <div class="text-center mb-6">
+                            <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100">
+                                <i class="fas fa-building text-xl text-emerald-600"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800">Enterprise</h3>
+                            <p class="text-3xl font-extrabold text-emerald-600 mt-2">Custom</p>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-800">Enterprise</h3>
-                        <p class="text-3xl font-bold text-green-600 mt-3">Custom</p>
+                        <ul class="space-y-3 mb-6 text-sm text-gray-600">
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Unlimited everything</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Dedicated support lead</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Custom tool integrations</li>
+                            <li class="flex items-center"><i class="fas fa-check text-emerald-500 mr-2.5"></i> Custom SLA guarantee</li>
+                        </ul>
                     </div>
-                    <ul class="space-y-3 mb-6 text-sm">
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Unlimited everything</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Dedicated support</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> Custom integrations</li>
-                        <li class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i> SLA guarantee</li>
-                    </ul>
-                    <button class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">Contact Sales</button>
+                    <button class="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-medium hover:bg-emerald-700 transition shadow-sm">Contact Sales</button>
                 </div>
             </div>
         </div>
@@ -691,9 +727,8 @@ function getServicesHTML() {
 }
 
 function openNewServiceModal() {
-    alert('Add service feature is being developed. Stay tuned!');
+    alert('Add service feature is under development.');
 }
-
 
 // ============================================================
 // PROFILE FUNCTIONS
@@ -701,47 +736,50 @@ function openNewServiceModal() {
 
 function getProfileHTML() {
     return `
-        <div class="space-y-6">
-            <h2 class="text-xl font-semibold text-gray-800">Profile Settings</h2>
+        <div class="space-y-6 max-w-4xl mx-auto">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Account Profile</h2>
+                <p class="text-sm text-gray-500 mt-1">Manage your credentials, login information, and user account settings.</p>
+            </div>
 
             <!-- Profile Info Card -->
-            <div class="bg-white rounded-xl shadow p-6">
-                <div class="flex items-center space-x-4 mb-6">
-                    <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center">
-                        <span id="profile-initials" class="text-2xl font-bold text-white">U</span>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div class="flex items-center space-x-5 mb-8 pb-6 border-b border-gray-100">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md">
+                        <span id="profile-initials" class="text-3xl font-extrabold text-white">U</span>
                     </div>
                     <div>
-                        <h3 id="profile-name" class="text-lg font-bold text-gray-800">Loading...</h3>
-                        <p id="profile-email-display" class="text-gray-500"></p>
-                        <p id="profile-role" class="text-sm text-gray-500">Role: user</p>
+                        <h3 id="profile-name" class="text-xl font-bold text-gray-800">Loading...</h3>
+                        <p id="profile-email-display" class="text-sm text-gray-500 mt-0.5"></p>
+                        <span id="profile-role" class="inline-block mt-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-50 text-purple-700 border border-purple-200/50">Role: user</span>
                     </div>
                 </div>
 
                 <!-- Profile Form -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <input type="text" id="profile-username" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
+                        <input type="text" id="profile-username" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="profile-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                        <input type="email" id="profile-email" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                        <input type="password" id="profile-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                        <p class="text-xs text-gray-500 mt-1">Leave blank to keep your current password</p>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">New Password</label>
+                        <input type="password" id="profile-password" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        <p class="text-xs text-gray-400 mt-1.5">Leave blank if you do not want to change your password.</p>
                     </div>
                 </div>
 
-                <div id="profile-error" class="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-lg text-sm hidden mt-4"></div>
-                <div id="profile-success" class="bg-green-50 border border-green-200 text-green-600 px-3 py-2 rounded-lg text-sm hidden mt-4"></div>
+                <div id="profile-error" class="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl text-sm hidden mt-6"></div>
+                <div id="profile-success" class="bg-emerald-50 border border-emerald-200 text-emerald-600 px-4 py-3 rounded-xl text-sm hidden mt-6"></div>
 
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button onclick="deleteAccount()" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition">
+                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
+                    <button onclick="deleteAccount()" class="px-4 py-2.5 text-rose-600 hover:bg-rose-50 rounded-xl font-medium border border-rose-200 transition flex items-center">
                         <i class="fas fa-trash mr-2"></i>Delete Account
                     </button>
-                    <button onclick="saveProfile()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    <button onclick="saveProfile()" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition flex items-center shadow-sm">
                         <i class="fas fa-save mr-2"></i>Save Changes
                     </button>
                 </div>
@@ -813,5 +851,3 @@ async function deleteAccount() {
 
 // Initialize app on page load
 checkAuth();
-
-
